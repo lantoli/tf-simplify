@@ -50,10 +50,9 @@ func Run(cmd *cobra.Command, args []string) {
 	for i, line := range lines {
 		keep := true
 		if strings.Contains(line, "=") {
-			result := make([]string, 0, len(lines)-1)
-			result = append(result, lines[:i]...)
-			result = append(result, lines[i+1:]...)
-			newContent := strings.Join(result, "\n")
+			newLines := append([]string(nil), lines...)
+			newLines[i] = "#" + newLines[i]
+			newContent := strings.Join(newLines, "\n") + "\n"
 			if err := os.WriteFile(FILE, []byte(newContent), 0644); err != nil {
 				fmt.Println("Error writing file: ", err)
 				os.Exit(1)
@@ -70,6 +69,8 @@ func Run(cmd *cobra.Command, args []string) {
 	}
 	fmt.Println()
 
+	finalContent = removeEmptyBlocks(finalContent)
+
 	if err := os.WriteFile(FILE, []byte(finalContent), 0644); err != nil {
 		fmt.Println("Error setting final file: ", err)
 		os.Exit(1)
@@ -80,6 +81,23 @@ func Run(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println("Error, Final file has changes")
 	}
+}
+
+func removeEmptyBlocks(content string) string {
+	lines := strings.Split(content, "\n")
+	finalContent := make([]string, 0, len(lines))
+	i := 0
+	for i < len(lines) {
+		if i+1 < len(lines) &&
+			strings.ContainsRune(lines[i], '{') &&
+			strings.ContainsRune(lines[i+1], '}') {
+			i += 2
+		} else {
+			finalContent = append(finalContent, lines[i])
+			i++
+		}
+	}
+	return strings.Join(finalContent, "\n")
 }
 
 func hasChanges() (bool, error) {
